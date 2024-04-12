@@ -1,4 +1,5 @@
 artifacts/*
+!artifacts/specified.json
 __pycache__/
 temp/
 venv/
