@@ -6,5 +6,5 @@ docker run -it --rm \
 
 DATE=`date '+%Y%m%d-%H%M'`
 
-tar -czvf vscsync-extensions_$DATE.tgz artifacts/extensions
-tar -czvf vscsync-installers_$DATE.tgz artifacts/installers
+tar -cvf vscsync-extensions_$DATE.tgz artifacts/extensions
+tar -cvf vscsync-installers_$DATE.tgz artifacts/installers
