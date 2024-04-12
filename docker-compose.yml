@@ -20,7 +20,7 @@ services:
       #- SYNCARGS=--sync --logfile /logs/sync.log
       
       # Complete args list to download the installers and listed extensions only
-      - SYNCARGS="--update-binaries --update-extensions --check-specified-extensions"
+      - SYNCARGS=--update-binaries --update-extensions --check-specified-extensions
 
   vscgallery:
     image: lolinternet/vscgallery:latest
