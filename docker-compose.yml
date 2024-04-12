@@ -11,13 +11,16 @@ services:
     volumes:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro
-      - ./artifacts/:/artifacts/
+      - ./artifacts/:/artifacts/:Z
     environment:
-      - SYNCARGS=--sync
+      #- SYNCARGS=--sync
       # Enable to sync all extensions
       #- SYNCARGS=--syncall
       # Enable a logfile
       #- SYNCARGS=--sync --logfile /logs/sync.log
+      
+      # Complete args list to download the installers and listed extensions only
+      - SYNCARGS="--update-binaries --update-extensions --check-specified-extensions"
 
   vscgallery:
     image: lolinternet/vscgallery:latest
@@ -27,11 +30,11 @@ services:
     volumes:
       # Enable for dev
       #- ./vscoffline/:/opt/vscoffline/:ro
-      - ./artifacts/:/artifacts/
+      - ./artifacts/:/artifacts/:Z
       # Enable for custom SSL certs
-      #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
+      # - ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
       # Enable to store logfiles in its own folder
-      # ./logs/:/logs/
+      - ./logs/:/logs/
     ports:
       - 443:443
     environment:
