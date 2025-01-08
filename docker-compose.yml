@@ -23,7 +23,7 @@ services:
       context: ./
       dockerfile: ./vscoffline/vscgallery/Dockerfile
     volumes:
-      - ./artifacts/:/artifacts/
+      - ./artifacts/:/artifacts/:U
       # Enable for custom SSL certs
       #- ./vscoffline/vscgallery/ssl/:/opt/vscoffline/vscgallery/ssl # Enable for custom SSL certs
       # Enable to store logfiles in its own folder
@@ -32,3 +32,6 @@ services:
       - 9443:9443
     environment:
       - BIND=0.0.0.0:9443
+    depends_on:
+      vscsync:
+        condition: service_completed_successfully
