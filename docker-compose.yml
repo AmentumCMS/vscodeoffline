@@ -11,7 +11,7 @@ services:
     volumes:
       - ./artifacts/:/artifacts/:U
     environment:
-      - SYNCARGS=--sync
+      - SYNCARGS="--sync --total-recommended 20"
       # Enable to sync all extensions
       #- SYNCARGS=--syncall
       # Enable a logfile
@@ -29,9 +29,9 @@ services:
       # Enable to store logfiles in its own folder
       # ./logs/:/logs/
     ports:
-      - 9443:9443
+      - 4443:4443
     environment:
-      - BIND=0.0.0.0:9443
+      - BIND=0.0.0.0:4443
     depends_on:
       vscsync:
         condition: service_completed_successfully
