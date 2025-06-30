@@ -9,7 +9,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   GH_TOKEN: ${{ github.token }}
 
 jobs:
@@ -48,11 +47,11 @@ jobs:
 
       - name: Show metadata
         run: |
-          echo "Version: ${{ steps.get_version.outputs.version }}"
-          echo "Image Name: ${{ env.IMAGE_NAME }}"
           echo "Registry: ${{ env.REGISTRY }}"
+          echo "SyncVersion: ${{ steps.sync.outputs.version }}"
           echo "Sync Tags: ${{ steps.sync.outputs.tags }}"
-          echo "SyncLabels: ${{ steps.sync.outputs.labels }}"
+          echo "Sync Labels: ${{ steps.sync.outputs.labels }}"
+          echo "Gallery Version: ${{ steps.gallery.outputs.version }}"
           echo "Gallery Tags: ${{ steps.gallery.outputs.tags }}"
           echo "Gallery Labels: ${{ steps.gallery.outputs.labels }}"
 
