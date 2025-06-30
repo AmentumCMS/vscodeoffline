@@ -1,4 +1,4 @@
-name: ci
+name: Push to Github Container Registry
 
 on:
   push:
@@ -40,7 +40,15 @@ jobs:
       - name: Get version
         id: get_version
         uses: battila7/get-version-action@v2
-          
+      
+      - name: Show metadata
+        run: |
+          echo "Version: ${{ steps.get_version.outputs.version }}"
+          echo "Image Name: ${{ env.IMAGE_NAME }}"
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
+          echo "Labels: ${{ steps.meta.outputs.labels }}"
+
       - name: Sync - Build and push
         id: docker_build_sync
         uses: docker/build-push-action@v6
