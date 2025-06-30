@@ -32,7 +32,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: ./vscoffline/vscsync/Dockerfile          
-          tags: lolinternet/vscsync:latest,lolinternet/vscsync:${{ steps.get_version.outputs.version-without-v }}
+          tags: ${{ vars.DOCKERHUB_REPOSITORY }}/vscsync:latest,${{ vars.DOCKERHUB_REPOSITORY }}/vscsync:${{ steps.get_version.outputs.version-without-v }}
           push: true
           
       - name: Sync - Build and push
@@ -40,5 +40,5 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: ./vscoffline/vscgallery/Dockerfile
-          tags: lolinternet/vscgallery:latest,lolinternet/vscgallery:${{ steps.get_version.outputs.version-without-v }}
+          tags: ${{ vars.DOCKERHUB_REPOSITORY }}/vscgallery:latest,${{ vars.DOCKERHUB_REPOSITORY }}/vscgallery:${{ steps.get_version.outputs.version-without-v }}
           push: true
