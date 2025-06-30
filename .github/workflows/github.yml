@@ -76,13 +76,13 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/vscsync
+          subject-name: ${{ env.REGISTRY }}//${{ github.repository }}/vscsync
           subject-digest: ${{ steps.docker_build_sync.outputs.digest }}
           push-to-registry: true
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
-          subject-name: ${{ env.REGISTRY }}/vscgallery
+          subject-name: ${{ env.REGISTRY }}/${{ github.repository }}/vscgallery
           subject-digest: ${{ steps.docker_build_gallery.outputs.digest }}
           push-to-registry: true
