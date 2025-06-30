@@ -61,29 +61,29 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: ./vscoffline/vscsync/Dockerfile          
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.sync.outputs.tags }}
+          labels: ${{ steps.sync.outputs.labels }}
           push: true
           
-      - name: Sync - Build and push
+      - name: Gallery - Build and push
         id: docker_build_gallery
         uses: docker/build-push-action@v6
         with:
           file: ./vscoffline/vscgallery/Dockerfile
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.gallery.outputs.tags }}
+          labels: ${{ steps.gallery.outputs.labels }}
           push: true
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/vscsync
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.docker_build_sync.outputs.digest }}
           push-to-registry: true
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/vscgallery
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.docker_gallery_sync.outputs.digest }}
           push-to-registry: true
