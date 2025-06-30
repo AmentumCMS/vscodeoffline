@@ -38,14 +38,14 @@ jobs:
         id: sync
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/vscsync
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/vscsync
 
-      - name: Extract metadata (tags, labels) for sync
+      - name: Extract metadata (tags, labels) for Gallery
         id: gallery
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/vscgallery
-      
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/vscgallery
+
       - name: Show metadata
         run: |
           echo "Version: ${{ steps.get_version.outputs.version }}"
@@ -85,5 +85,5 @@ jobs:
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/vscgallery
-          subject-digest: ${{ steps.docker_gallery_sync.outputs.digest }}
+          subject-digest: ${{ steps.docker_build_gallery.outputs.digest }}
           push-to-registry: true
