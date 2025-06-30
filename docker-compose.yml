@@ -2,7 +2,7 @@ version: '3'
 services:
 
   vscsync:
-    image: lolinternet/vscsync:latest
+    image: ${DOCKERHUB_USERNAME}/vscsync:latest
     build:
       context: ./
       dockerfile: ./vscoffline/vscsync/Dockerfile
@@ -18,7 +18,7 @@ services:
       #- SYNCARGS=--sync --logfile /logs/sync.log
 
   vscgallery:
-    image: lolinternet/vscgallery:latest
+    image: ${DOCKERHUB_USERNAME}/vscgallery:latest
     build:
       context: ./
       dockerfile: ./vscoffline/vscgallery/Dockerfile
