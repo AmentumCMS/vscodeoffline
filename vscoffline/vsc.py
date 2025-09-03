@@ -13,7 +13,7 @@ BUILDTYPES = ["", "archive", "user", "web"]
 QUALITIES = ["stable", "insider"]
 
 URL_BINUPDATES = r"https://update.code.visualstudio.com/api/update/"
-URL_RECOMMENDATIONS = r"https://main.vscode-cdn.net/extensions/marketplace.json"
+URL_RECOMMENDATIONS = r"https://main.vscode-cdn.net/extensions/workspaceRecommendations.json.gz"
 URL_MARKETPLACEQUERY = r"https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery"
 URL_MALICIOUS = r"https://main.vscode-cdn.net/extensions/marketplace.json"
 
