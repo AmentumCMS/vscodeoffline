@@ -1,0 +1,22 @@
+apiVersion: v2
+name: vscgallery
+description: >
+  A Helm chart for deploying vscgallery as a StatefulSet on Kubernetes.
+  vscgallery serves as an offline VS Code extension gallery and update server,
+  mirroring update.code.visualstudio.com, marketplace.visualstudio.com, and
+  main.vscode-cdn.net so that VS Code clients can operate without internet access.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - vscode
+  - offline
+  - gallery
+  - extensions
+  - airgapped
+home: https://github.com/AmentumCMS/vscodeoffline
+sources:
+  - https://github.com/AmentumCMS/vscodeoffline
+maintainers:
+  - name: AmentumCMS
+    url: https://github.com/AmentumCMS

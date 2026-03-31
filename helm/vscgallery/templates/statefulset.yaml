@@ -1,0 +1,144 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "vscgallery.fullname" . }}
+  labels:
+    {{- include "vscgallery.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ include "vscgallery.fullname" . }}-headless
+  selector:
+    matchLabels:
+      {{- include "vscgallery.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "vscgallery.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "vscgallery.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        # -------------------------------------------------------------------
+        # vscgallery – serves the VS Code update and extension marketplace APIs
+        # -------------------------------------------------------------------
+        - name: gallery
+          image: {{ include "vscgallery.galleryImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            - name: BIND
+              value: {{ .Values.gallery.bind | quote }}
+            - name: TIMEOUT
+              value: {{ .Values.gallery.timeout | quote }}
+            - name: THREADS
+              value: {{ .Values.gallery.threads | quote }}
+            - name: ARTIFACTS
+              value: {{ .Values.gallery.artifacts | quote }}
+            - name: SSLARGS
+              value: {{ .Values.gallery.sslArgs | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: {{ include "vscgallery.artifactsPvcName" . }}
+              mountPath: {{ .Values.gallery.artifacts }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+        {{- if .Values.sync.enabled }}
+        # -------------------------------------------------------------------
+        # vscsync – downloads VS Code binaries and extensions into /artifacts
+        # -------------------------------------------------------------------
+        - name: sync
+          image: {{ include "vscgallery.syncImage" . }}
+          imagePullPolicy: {{ .Values.sync.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            - name: ARTIFACTS
+              value: {{ .Values.gallery.artifacts | quote }}
+            - name: SYNCARGS
+              value: >-
+                {{ .Values.sync.args }}
+                {{- if .Values.sync.frequency }} --frequency {{ .Values.sync.frequency }}{{ end }}
+                {{- if .Values.sync.specifiedExtensions }} --check-specified-extensions{{ end }}
+          volumeMounts:
+            - name: {{ include "vscgallery.artifactsPvcName" . }}
+              mountPath: {{ .Values.gallery.artifacts }}
+            {{- with .Values.extraSyncVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.sync.resources | nindent 12 }}
+        {{- end }}
+
+      {{- with .Values.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+  {{- if .Values.persistence.enabled }}
+  # -------------------------------------------------------------------------
+  # Persistent volume claim for downloaded artifacts (binaries + extensions).
+  # The StatefulSet creates this automatically; do not manage it separately.
+  # -------------------------------------------------------------------------
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ include "vscgallery.artifactsPvcName" . }}
+        {{- with .Values.persistence.annotations }}
+        annotations:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      spec:
+        accessModes:
+          - {{ .Values.persistence.accessMode | quote }}
+        {{- if .Values.persistence.storageClass }}
+        storageClassName: {{ .Values.persistence.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size | quote }}
+  {{- end }}

@@ -1,0 +1,179 @@
+# Number of replicas.
+# NOTE: More than 1 replica requires a ReadWriteMany-capable storageClass so
+# all pods can share the /artifacts PVC. With the default ReadWriteOnce access
+# mode, only a single pod can mount the volume at a time; keep replicaCount: 1
+# unless you change persistence.accessMode to ReadWriteMany.
+replicaCount: 1
+
+# ---------------------------------------------------------------------------
+# vscgallery image
+# ---------------------------------------------------------------------------
+image:
+  repository: amentumcms/vscgallery
+  pullPolicy: IfNotPresent
+  # Overrides the image tag. Defaults to the chart's appVersion when empty.
+  # Pin to a specific release tag for reproducible deployments, e.g. "0.1.0".
+  tag: ""
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# ---------------------------------------------------------------------------
+# Service account
+# ---------------------------------------------------------------------------
+serviceAccount:
+  create: true
+  annotations: {}
+  # If not set, a name is generated using the fullname helper.
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# ---------------------------------------------------------------------------
+# vscgallery application settings
+# ---------------------------------------------------------------------------
+gallery:
+  # Bind address for Gunicorn. Run on plain HTTP so the ingress handles TLS.
+  bind: "0.0.0.0:8080"
+  # Gunicorn worker timeout in seconds.
+  timeout: 180
+  # Number of Gunicorn worker threads.
+  threads: 4
+  # Path inside the container where artifacts are mounted.
+  artifacts: "/artifacts"
+  # SSL arguments for Gunicorn. Leave empty when TLS is terminated at the ingress.
+  sslArgs: ""
+
+# ---------------------------------------------------------------------------
+# vscsync sidecar – downloads VS Code binaries and extensions into /artifacts
+# ---------------------------------------------------------------------------
+sync:
+  enabled: true
+  image:
+    repository: amentumcms/vscsync
+    pullPolicy: IfNotPresent
+    # Overrides the image tag. Defaults to the chart's appVersion when empty.
+    tag: ""
+  # Sync arguments passed to sync.py.
+  # Common values:
+  #   --sync              Stable channel + popular extensions (default)
+  #   --syncall           All platforms + all extensions (large dataset)
+  #   --sync --check-insider   Include insider builds
+  args: "--sync"
+  # How often to repeat the sync, e.g. "12h". Leave empty to sync once and exit.
+  frequency: ""
+  # Path to an optional JSON file listing extra extensions to sync.
+  # Mount it via extraVolumes / extraVolumeMounts if needed.
+  specifiedExtensions: ""
+  resources: {}
+  #   limits:
+  #     cpu: 2000m
+  #     memory: 2Gi
+  #   requests:
+  #     cpu: 500m
+  #     memory: 512Mi
+
+# ---------------------------------------------------------------------------
+# Kubernetes Service
+# ---------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  port: 80
+  # Target port on the gallery container (must match gallery.bind port).
+  targetPort: 8080
+
+# ---------------------------------------------------------------------------
+# Ingress
+# All three domains that VS Code clients contact must be routed here so that
+# the gallery can serve updates, extensions, and CDN assets offline.
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  # Ingress class name – set to match your cluster's ingress controller.
+  className: "nginx"
+  annotations:
+    # Allow large file transfers (extension packages, installers).
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+  # VS Code domains that must resolve to this ingress for offline operation.
+  # All three hosts are required; do not remove any of them.
+  hosts:
+    # VS Code binary update checks.
+    - host: update.code.visualstudio.com
+      paths:
+        - path: /
+          pathType: Prefix
+    # Extension marketplace queries.
+    - host: marketplace.visualstudio.com
+      paths:
+        - path: /
+          pathType: Prefix
+    # Workspace recommendations and malicious-extension list.
+    - host: main.vscode-cdn.net
+      paths:
+        - path: /
+          pathType: Prefix
+  # TLS configuration. Provide a certificate that covers all three hosts, or
+  # one entry per host. Example using cert-manager:
+  #
+  # tls:
+  #   - secretName: vscgallery-tls
+  #     hosts:
+  #       - update.code.visualstudio.com
+  #       - marketplace.visualstudio.com
+  #       - main.vscode-cdn.net
+  tls: []
+
+# ---------------------------------------------------------------------------
+# Persistent storage for /artifacts (VS Code binaries + extensions)
+# ---------------------------------------------------------------------------
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 50Gi
+  annotations: {}
+
+# ---------------------------------------------------------------------------
+# Resource requests/limits for vscgallery container
+# ---------------------------------------------------------------------------
+resources: {}
+#   limits:
+#     cpu: 1000m
+#     memory: 1Gi
+#   requests:
+#     cpu: 100m
+#     memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# Scheduling
+# ---------------------------------------------------------------------------
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# ---------------------------------------------------------------------------
+# Extra volumes / volume mounts (e.g. custom SSL certs, specified.json)
+# ---------------------------------------------------------------------------
+extraVolumes: []
+extraVolumeMounts: []
+extraSyncVolumeMounts: []

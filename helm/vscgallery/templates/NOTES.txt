@@ -1,0 +1,47 @@
+1. vscgallery is now running. Check the StatefulSet status:
+
+   kubectl get statefulset -n {{ .Release.Namespace }} {{ include "vscgallery.fullname" . }}
+
+2. The gallery serves three VS Code domains. For offline operation you must
+   route all three domains to this ingress from every VS Code client:
+
+   • update.code.visualstudio.com  – binary update checks
+   • marketplace.visualstudio.com  – extension gallery queries
+   • main.vscode-cdn.net           – workspace recommendations / malicious list
+
+   Options:
+   a) Update your internal DNS server / split-horizon DNS to override these
+      names and point them to your ingress IP address.
+   b) Add entries to /etc/hosts (or the Windows hosts file) on each client.
+
+3. Get the ingress IP or hostname:
+
+   kubectl get ingress -n {{ .Release.Namespace }} {{ include "vscgallery.fullname" . }}
+
+{{- if .Values.ingress.tls }}
+4. TLS is enabled. Ensure your clients trust the certificate issuer, or import
+   the CA used to sign the certificate.
+{{- else }}
+4. TLS is NOT enabled on the ingress. VS Code will attempt HTTPS connections to
+   the upstream domains. To accept plain HTTP you must either:
+   a) Enable TLS in values.yaml (recommended) with a certificate that covers
+      all three host names, OR
+   b) Configure VS Code to allow HTTP via:
+      "update.mode": "none"  (disables update checks), or by deploying a
+      TLS-terminating proxy in front of this ingress.
+{{- end }}
+
+{{- if .Values.sync.enabled }}
+5. The vscsync sidecar is enabled and will run with arguments:
+   {{ .Values.sync.args }}{{ if .Values.sync.frequency }} --frequency {{ .Values.sync.frequency }}{{ end }}
+
+   Monitor the sync progress:
+   kubectl logs -n {{ .Release.Namespace }} {{ include "vscgallery.fullname" . }}-0 -c sync -f
+{{- else }}
+5. The vscsync sidecar is disabled. The /artifacts volume will not be populated
+   automatically. Enable it with --set sync.enabled=true, or populate
+   /artifacts manually.
+{{- end }}
+
+6. Browse the synced artifact tree at:
+   http{{ if .Values.ingress.tls }}s{{ end }}://update.code.visualstudio.com/browse
