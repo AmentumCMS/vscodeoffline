@@ -1,0 +1,154 @@
+name: Helm Chart CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+  pull_request:
+    paths:
+      - 'helm/**'
+  release:
+    types: [released]
+
+env:
+  REGISTRY: ghcr.io
+  CHART_DIR: helm/vscgallery
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Lint – validate chart structure and values
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Lint chart (strict)
+        run: helm lint --strict ${{ env.CHART_DIR }}
+
+  # ---------------------------------------------------------------------------
+  # 2. Test – render all templates with default values (dry-run)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Render templates with default values
+        run: |
+          helm template test-release ${{ env.CHART_DIR }} \
+            --debug \
+            --dry-run
+
+      - name: Render templates with sync disabled
+        run: |
+          helm template test-release ${{ env.CHART_DIR }} \
+            --set sync.enabled=false \
+            --dry-run
+
+      - name: Render templates with TLS and custom storage
+        run: |
+          helm template test-release ${{ env.CHART_DIR }} \
+            --set "ingress.tls[0].secretName=vscgallery-tls" \
+            --set "ingress.tls[0].hosts[0]=update.code.visualstudio.com" \
+            --set "ingress.tls[0].hosts[1]=marketplace.visualstudio.com" \
+            --set "ingress.tls[0].hosts[2]=main.vscode-cdn.net" \
+            --set persistence.storageClass=standard \
+            --set persistence.size=100Gi \
+            --dry-run
+
+  # ---------------------------------------------------------------------------
+  # 3. Bundle – package the chart into a .tgz archive
+  # ---------------------------------------------------------------------------
+  bundle:
+    name: Bundle
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Get version
+        id: get_version
+        uses: battila7/get-version-action@v2
+
+      - name: Set chart version from release tag
+        if: github.event_name == 'release'
+        run: |
+          VERSION="${{ steps.get_version.outputs.version-without-v }}"
+          sed -i "s/^version:.*/version: ${VERSION}/" ${{ env.CHART_DIR }}/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" ${{ env.CHART_DIR }}/Chart.yaml
+
+      - name: Package chart
+        run: helm package ${{ env.CHART_DIR }} --destination /tmp/helm-pkg
+
+      - name: Upload chart package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-chart
+          path: /tmp/helm-pkg/*.tgz
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 4. Publish – push the chart to GHCR as an OCI artifact (releases only)
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: bundle
+    if: github.event_name == 'release'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Get version
+        id: get_version
+        uses: battila7/get-version-action@v2
+
+      - name: Set chart version from release tag
+        run: |
+          VERSION="${{ steps.get_version.outputs.version-without-v }}"
+          sed -i "s/^version:.*/version: ${VERSION}/" ${{ env.CHART_DIR }}/Chart.yaml
+          sed -i "s/^appVersion:.*/appVersion: \"${VERSION}\"/" ${{ env.CHART_DIR }}/Chart.yaml
+
+      - name: Package chart
+        run: helm package ${{ env.CHART_DIR }} --destination /tmp/helm-pkg
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push chart to GHCR
+        run: |
+          helm push /tmp/helm-pkg/*.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}

@@ -1,0 +1,10 @@
+# Patterns to ignore when building packages.
+# Follows the same pattern as .gitignore.
+.DS_Store
+.git/
+.gitignore
+.helmignore
+*.orig
+*.swp
+*.bak
+*.tmp
